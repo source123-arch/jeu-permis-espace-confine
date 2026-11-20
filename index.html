@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trouvez les 4 erreurs du permis</title>
+<style>
+:root{
+  --purple:#AF007C; --orange:#E7B042; --bg:#E7E7E7; --surface:#DADADA;
+  --fg:#171717; --muted:#4D474B; --line:#C5BEC3;
+  --ok:#5E8C1F; --ok-bg:#EEF5E0; --bad:#C2273A; --bad-bg:#FBE3E6;
+  --warn-bg:#FBF1D8;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:28px 16px;background:var(--bg);color:var(--fg);
+  font-family:Segoe UI,Arial,Helvetica,sans-serif;line-height:1.5}
+.wrap{max-width:1050px;margin:0 auto}
+h1{font-size:clamp(24px,4vw,36px);margin:0 0 8px;font-weight:850}
+.intro{color:var(--muted);margin:0 0 22px}
+.layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(250px,.6fr);gap:22px;align-items:start}
+.permit{background:var(--surface);border:1px solid var(--line);border-radius:5px;overflow:hidden;box-shadow:0 3px 12px #00000012}
+.permit-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  background:var(--purple);color:#fff;padding:15px 18px;font-weight:800;font-size:15px;letter-spacing:.025em}
+.permit-no{font-family:Consolas,monospace;font-weight:500}
+.rows{padding:0}
+.prow{display:grid;grid-template-columns:175px minmax(0,1fr);gap:14px;width:100%;
+  text-align:left;background:#DADADA;border:0;border-bottom:1px dashed var(--line);
+  padding:13px 17px;color:#171717;cursor:pointer;font-size:14px;transition:background .15s}
+.prow:last-child{border-bottom:0}
+.prow:hover:not(:disabled){background:#F2DCEC}
+.prow[aria-pressed="true"]{background:var(--warn-bg);box-shadow:inset 4px 0 0 var(--orange)}
+.pk{font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:800;color:var(--purple);padding-top:2px}
+.pv{font-family:Consolas,monospace;font-size:13px;line-height:1.5;color:#171717}
+.pwhy{display:block;font-family:Segoe UI,Arial,sans-serif;font-size:13px;margin-top:7px;color:var(--fg)}
+.prow.good{background:var(--ok-bg);box-shadow:inset 4px 0 0 var(--ok)}
+.prow.bad,.prow.missed{background:var(--bad-bg);box-shadow:inset 4px 0 0 var(--bad)}
+.prow:disabled{cursor:default;opacity:1}
+.side{background:#F2F0F1;border:1px solid var(--line);border-radius:10px;padding:20px;display:grid;gap:14px}
+.side h2{font-size:19px;margin:0}
+.side p{margin:0;color:var(--muted);font-size:14px}
+.count{font-weight:800!important;color:var(--fg)!important}
+.actions{display:flex;gap:9px;flex-wrap:wrap}
+button.action{border:0;border-radius:6px;padding:11px 16px;font:700 14px Segoe UI,Arial;cursor:pointer}
+.primary{background:var(--purple);color:#fff}
+.secondary{background:#fff;color:var(--fg);border:1px solid var(--line)!important}
+button.action:hover{filter:brightness(1.05)}
+button.action:focus-visible,.prow:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.result{font-size:14px;color:var(--fg)}
+.result strong{display:block;font-size:18px;margin-bottom:4px}
+.note{font-size:12px!important;color:var(--muted)!important}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.prow{grid-template-columns:1fr;gap:3px}.permit-head{font-size:13px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="layout">
+    <section class="permit" aria-label="Permis de pénétrer">
+      <div class="permit-head">
+        <span>PERMIS DE PÉNÉTRER EN ESPACE CONFINÉ</span>
+        <span class="permit-no">N° EC-2026-114</span>
+      </div>
+      <div class="rows" id="permitRows"></div>
+    </section>
+    <aside class="side">
+      <h2>Votre analyse</h2>
+      <p>Un permis n'est pas une formalité : chaque ligne correspond à une barrière entre l'intervenant et l'accident.</p>
+      <p class="count" id="pCount" aria-live="polite">0 ligne sélectionnée sur 4</p>
+      <div class="result" id="pRes" aria-live="polite"></div>
+      <div class="actions">
+        <button class="action primary" id="pCheck" type="button">Valider</button>
+        <button class="action secondary" id="pReset" type="button">Recommencer</button>
+      </div>
+      <p class="note">Sélectionnez exactement les quatre lignes qui présentent une anomalie. Vous pouvez modifier votre sélection avant de valider.</p>
+    </aside>
+  </div>
+</main>
+<script>
+(() => {
+  const data = [
+    ["Lieu","Cuve T12, atelier traitement de surface, trou d'homme Ø 600 mm",false,""],
+    ["Date et validité","Aujourd'hui, de 8 h à 12 h",false,""],
+    ["Intervenants entrants","M. Dupont, Mme Leroy (formés, aptes)",false,""],
+    ["Surveillant extérieur","M. Dupont",true,"Le surveillant ne peut pas être un intervenant entrant : il doit rester dehors en permanence."],
+    ["Consignation","Agitateur consigné, cadenas personnels posés, vannes d'alimentation fermées et condamnées",false,""],
+    ["Mesure d'atmosphère","Réalisée hier à 16 h : O₂ 20,9 % · H₂S 0 · CO 0 · LIE 0",true,"Une mesure de la veille ne vaut rien. On mesure juste avant d'entrer, à plusieurs niveaux, puis en continu."],
+    ["Ventilation","Non prévue, la mesure était correcte",true,"La ventilation est maintenue pendant toute l'intervention : le travail lui-même peut libérer des gaz."],
+    ["Moyens de secours","Trépied et treuil, harnais reliés",false,""],
+    ["Détecteur","Un détecteur 4 gaz par intervenant, testé ce matin",false,""],
+    ["Alerte","Numéro des secours : à chercher sur place si besoin",true,"Les numéros d'alerte et le plan de secours doivent être connus et écrits avant l'entrée."],
+    ["Signature","Responsable de l'intervention : signé",false,""]
+  ];
+  const rows = document.getElementById("permitRows");
+  const count = document.getElementById("pCount");
+  const result = document.getElementById("pRes");
+  const check = document.getElementById("pCheck");
+  let validated = false;
+
+  function updateCount(){
+    const n = rows.querySelectorAll('[aria-pressed="true"]').length;
+    count.textContent = `${n} ligne${n>1?"s":""} sélectionnée${n>1?"s":""} sur 4`;
+    check.disabled = validated || n !== 4;
+    check.style.opacity = check.disabled ? ".6" : "1";
+  }
+  function draw(){
+    rows.innerHTML = "";
+    result.innerHTML = "";
+    validated = false;
+    data.forEach(([label,value,isError,explanation]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "prow";
+      button.setAttribute("aria-pressed","false");
+      button.innerHTML = `<span class="pk"></span><span class="pv"></span>`;
+      button.querySelector(".pk").textContent = label;
+      button.querySelector(".pv").append(document.createTextNode(value));
+      const why = document.createElement("span");
+      why.className = "pwhy";
+      why.hidden = true;
+      why.textContent = explanation;
+      button.querySelector(".pv").append(why);
+      button.dataset.error = isError ? "1" : "0";
+      button.addEventListener("click", () => {
+        if(validated) return;
+        const currently = button.getAttribute("aria-pressed") === "true";
+        const selected = rows.querySelectorAll('[aria-pressed="true"]').length;
+        if(!currently && selected >= 4) return;
+        button.setAttribute("aria-pressed",String(!currently));
+        updateCount();
+      });
+      rows.append(button);
+    });
+    updateCount();
+  }
+  check.addEventListener("click", () => {
+    if(validated || rows.querySelectorAll('[aria-pressed="true"]').length !== 4) return;
+    validated = true;
+    let correct = 0;
+    rows.querySelectorAll(".prow").forEach(button => {
+      const selected = button.getAttribute("aria-pressed") === "true";
+      const error = button.dataset.error === "1";
+      if(selected && error){ button.classList.add("good"); correct++; }
+      else if(selected && !error) button.classList.add("bad");
+      else if(error) button.classList.add("missed");
+      if(error) button.querySelector(".pwhy").hidden = false;
+      button.disabled = true;
+    });
+    result.innerHTML = `<strong>${correct} / 4 erreurs trouvées.</strong><span>Les explications apparaissent sous chaque ligne fautive. Avec un seul de ces défauts, le permis ne doit pas être validé.</span>`;
+    check.disabled = true;
+  });
+  document.getElementById("pReset").addEventListener("click", draw);
+  draw();
+})();
+</script>
+</body>
+</html>
